@@ -1,0 +1,391 @@
+<!DOCTYPE html>
+
+<head>
+  <title>assignment of Data Vis Course </title>
+  <script type="text/javascript" src="d3.js"></script>
+</head>
+<style>
+  .view {
+    margin-left: 100px;
+
+    padding-top: 50px;
+  }
+
+  .label {
+    fill: black;
+    font-size: 12px;
+    font-family: sans-serif;
+
+  }
+
+  rect {
+    width: 12px;
+    height: 12px;
+  }
+
+  #select1 {
+    margin-left: 100px;
+    position: absolute;
+    top: 700px;
+    left: 100px;
+
+  }
+
+  #select2 {
+    margin-left: 100px;
+    position: absolute;
+    top: 700px;
+    left: 250px;
+
+  }
+
+  .selectLabel {
+    position: absolute;
+    top: 702px;
+    left: 180px;
+  }
+
+  .selectLabel2 {
+    position: absolute;
+    top: 702px;
+    left: 330px;
+  }
+
+  .tooltip {
+    position: absolute;
+    width: 120px;
+    height: 70px;
+    left: 50%;
+    pointer-events: none;
+    background-color: white;
+    border-radius: 10px;
+    border: 1px solid #000;
+
+    fill: black;
+    text-align: left;
+    font-size: 12px;
+    font-family: sans-serif;
+    padding-top: 10px;
+    padding-bottom: 10px;
+    padding-left: 10px;
+  }
+
+  .tooltip .tooltiptext::after {
+    content: " 1";
+    position: absolute;
+    top: 100%;
+    /* 提示工具底部 */
+    left: 50%;
+    margin-left: -5px;
+    border-width: 5px;
+    border-style: solid;
+    border-color: black transparent transparent transparent;
+  }
+</style>
+
+<body>
+
+  <script type="text/javascript">
+    var width = 800;
+    var height = 600;
+    var dataset;
+    var x;
+    var y;
+    var xScale, yScale;
+    var padding = 30;
+    var select;
+    var select2;
+    var xAxis,yAxis;
+
+    var tooltip = d3.select("body").append("div")
+      .attr("class", "tooltip")
+      .style("opacity", 0);
+
+    // 缩放
+    var zoomPlot = d3.zoom()
+      .scaleExtent([0,500])
+      .on("zoom",zoomChange);
+
+
+
+    d3.csv('flowers.csv', function(data) {
+      //格式化数据
+      data.forEach(function(d) {
+        d.sepalLength = +d.sepalLength;
+        d.sepalWidth = +d.sepalWidth;
+        d.petalLength = +d.petalLength;
+        d.petalWidth = +d.petalWidth;
+      });
+      dataset = data;
+
+
+
+
+      generateChart(dataset, x, y);
+
+      // 初始化图表
+
+
+    });
+
+    function generateChart(date, x, y) {
+      var svg = d3.select("body")
+        .append("svg")
+        .attr("class", "view")
+        .call(zoomPlot)
+        .attr("width", 1000)
+        .attr("height", 600);
+
+      xScale = d3.scaleLinear()
+        .domain([d3.min(date, function(d) {
+          return d.sepalLength;
+        }) - 0.1, d3.max(date, function(d) {
+          return d.sepalLength;
+        }) + 0.1])
+        .range([padding, width - padding]);
+
+
+      yScale = d3.scaleLinear()
+        .domain([d3.min(date, function(d) {
+          return d.sepalWidth;
+        }) - 0.1, d3.max(date, function(d) {
+          return d.sepalWidth;
+        }) + 0.1])
+        .range([height - padding, padding]);
+
+
+      svg.selectAll("circle")
+        .data(date)
+        .enter()
+        .append("circle")
+        .attr('class',"dot")
+        .attr('fill', function(d) {
+          console.log(d["species"]);
+          switch (d["species"]) {
+            case "setosa":
+              return "#E57373";
+            case "versicolor":
+              return "#9CCC65";
+            case "virginica":
+              return "#4FC3F7";
+          }
+        })
+        .attr("r", 5)
+        // .attr("stroke","black")
+        .attr("cx", function(d) {
+          return xScale(d["sepalLength"]);
+        })
+        .attr("cy", function(d) {
+          return yScale(d["sepalWidth"]);
+        })
+        .on("mouseover", function(d) {
+          d3.select(this).style("stroke", "5px black");
+          tooltip.transition()
+            .duration(200)
+            .style("opacity", .9);
+          tooltip.html(
+              d["species"] + "<br/>" +
+              "sepal Length:" + d["sepalLength"] + "<br/>" +
+              "sepal Width:" + d["sepalWidth"] + "<br/>" +
+              "petal Length:" + d["petalLength"] + "<br/>" +
+              "petal Widthh:" + d["petalWidth"]
+
+            )
+            .style("left", (d3.event.pageX + 10) + "px")
+            .style("top", (d3.event.pageY - 100) + "px");
+        })
+        .on("mouseout", function(d) {
+          tooltip.transition()
+            .duration(500)
+            .style("opacity", 0);
+        });
+
+      //绘制比例尺
+      xAxis = d3.axisBottom(xScale);
+
+      svg.append("g")
+        .attr("class", "axis xAxis")
+        .attr("transform", "translate(0,570)")
+        .call(xAxis)
+        .append("text")
+        .attr("class", "label xLabel")
+        .attr("x", width - 40)
+        .attr("y", -10)
+        .style("text-anchor", "end")
+        .text("sepalLength");
+
+
+
+      yAxis = d3.axisLeft(yScale);
+
+      svg.append("g")
+        .attr("class", "axis yAxis")
+        .attr("transform", "translate(30,0)")
+        .call(yAxis)
+        .append("text")
+        .attr("class", "label yLabel")
+        .attr("x", 70)
+        .attr("y", 40)
+        .style("text-anchor", "end")
+        .text("sepalWidth");
+
+      var legendPadding = 20;
+      // 绘制legeng
+      d3.select("svg")
+        .append("rect")
+        .attr("x", 800)
+        .attr("y", 20)
+        .attr("fill", "#E57373");
+
+      d3.select("svg")
+        .append("rect")
+        .attr("x", 800)
+        .attr("y", 20 + legendPadding)
+        .attr("fill", "#9CCC65");
+
+      d3.select("svg")
+        .append("rect")
+        .attr("x", 800)
+        .attr("y", 20 + 2 * legendPadding)
+        .attr("fill", "#4FC3F7");
+
+
+
+      d3.select("svg").append("text")
+        .attr("class", "label")
+        .attr("x", 820)
+        .attr("y", 30)
+        .text("setosa");
+
+      d3.select("svg").append("text")
+        .attr("class", "label")
+        .attr("x", 820)
+        .attr("y", 30 + legendPadding)
+        .text("versicolor");
+
+      d3.select("svg").append("text")
+        .attr("class", "label")
+        .attr("x", 820)
+        .attr("y", 30 + 2 * legendPadding)
+        .text("virginica");
+
+      select = d3.select("body").append("select").attr("id", "select1").on("change", changeX);
+      d3.select("#select1").append("option").text("sepalLength").attr("value", "sepalLength");
+      d3.select("#select1").append("option").text("sepalWidth").attr("value", "sepalWidth");
+      d3.select("#select1").append("option").text("petalLength").attr("value", "petalLength");
+      d3.select("#select1").append("option").text("petalWidth").attr("value", "petalWidth");
+      d3.select("body").append("text").attr("class", "label selectLabel").text("X:");
+
+      select2 = d3.select("body").append("select").attr("id", "select2").on("change", changeY);
+      d3.select("#select2").append("option").text("sepalWidth").attr("value", "sepalWidth");
+      d3.select("#select2").append("option").text("sepalLength").attr("value", "sepalLength");
+      d3.select("#select2").append("option").text("petalLength").attr("value", "petalLength");
+      d3.select("#select2").append("option").text("petalWidth").attr("value", "petalWidth");
+      d3.select("body").append("text").attr("class", "label selectLabel2").text("Y:");
+
+
+    }
+
+
+
+    // 更新X维度
+    function upadateX(x) {
+      //比例尺与说明
+
+      xScale = d3.scaleLinear()
+        .domain([d3.min(dataset, function(d) {
+          return d[x];
+        }) - 0.1, d3.max(dataset, function(d) {
+          return d[x];
+        }) + 0.1])
+        .range([padding, 800 - padding]);
+      xAxis = d3.axisBottom(xScale);
+
+      d3.select(".xAxis").call(xAxis).attr("transform", "translate(0,570)");
+
+      d3.selectAll("circle")
+        .data(dataset)
+        .attr("cx", function(d) {
+          return xScale(d[x]);
+        });
+
+
+      //图示
+      d3.select(".xLabel")
+        .attr("x", width - 40)
+        .attr("y", -10)
+        .text(x);
+
+      //scatterplot 生成
+    }
+
+    function upadateY(y) {
+      //比例尺与说明
+
+      yScale = d3.scaleLinear()
+        .domain([d3.min(dataset, function(d) {
+          return d[y];
+        }) - 0.1, d3.max(dataset, function(d) {
+          return d[y];
+        }) + 0.1])
+        .range([600 - padding, padding]);
+      yAxis = d3.axisLeft(yScale);
+
+      d3.select(".yAxis").call(yAxis).attr("transform", "translate(30,0)");
+
+      d3.selectAll("circle")
+        .data(dataset)
+        .attr("cy", function(d) {
+          return yScale(d[y]);
+        });
+
+
+      //图示
+      d3.select(".yLabel")
+        .attr("x", 70)
+        .attr("y", 40)
+        .text(y);
+
+      //scatterplot 生成
+    }
+
+    function changeX() {
+      console.log(select.property('value'));
+      upadateX(select.property('value'));
+    }
+
+    function changeY() {
+      console.log(select2.property('value'));
+      upadateY(select2.property('value'));
+    }
+
+    // 缩放
+    function zoomChange(){
+
+      var new_xScale = d3.event.transform.rescaleX(xScale);
+      var new_yScale = d3.event.transform.rescaleY(yScale);
+
+      d3.select(".xAxis").call(xAxis.scale(new_xScale));
+      d3.select(".yAxis").call(yAxis.scale(new_yScale));
+
+      d3.selectAll(".dot").attr("transform",d3.event.transform);
+
+      d3.selectAll(".dot").attr("r",5);
+
+
+
+
+    }
+
+
+
+    // var select =d3.select("body").append("select").attr("id","select2").on("change",change);
+    // d3.select("#select1").append("option").text("sepalLength").attr("value","sepalLength");
+    // d3.select("#select1").append("option").text("sepalWidth").attr("value","sepalWidth");
+    // d3.select("#select1").append("option").text("petalLength").attr("value","petalLength");
+    // d3.select("#select1").append("option").text("petalWidth").attr("value","petalWidth");
+    // d3.select("body").append("text").attr("class","label selectLabel").text("X:");
+  </script>
+
+
+</body>
